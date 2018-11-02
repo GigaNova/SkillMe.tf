@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -14,6 +15,7 @@ using System.Windows.Input;
 using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.CommandWpf;
 using Newtonsoft.Json.Linq;
+using SkillMe.tf.DataTypes;
 using SkillMe.tf.Models;
 
 namespace SkillMe.tf.ViewModel
@@ -27,6 +29,9 @@ namespace SkillMe.tf.ViewModel
         private List<JObject> _matches = new List<JObject>();
 
         private string _folder = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+
+        public ObservableDictionary<Classes, int> ClassOverview { get; set; }
+        public ObservableCollection<StatViewModel> StatList { get; set; }
 
         private ClassStatsViewmodel _currentClassView;
         public ClassStatsViewmodel CurrentClassView
@@ -93,6 +98,27 @@ namespace SkillMe.tf.ViewModel
             _client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             _client.BaseAddress = new Uri(@_webUrl);
 
+            ClassOverview = new ObservableDictionary<Classes, int>()
+            {
+                { Classes.Scout, 0 },
+                { Classes.Soldier, 0 },
+                { Classes.Pyro, 0 },
+                { Classes.Demoman, 0 },
+                { Classes.Heavy, 0 },
+                { Classes.Engineer, 0 },
+                { Classes.Medic, 0 },
+                { Classes.Sniper, 0 },
+                { Classes.Spy, 0 }
+            };
+
+            StatList = new ObservableCollection<StatViewModel>()
+            {
+                new StatViewModel(),
+                new StatViewModel(),
+                new StatViewModel(),
+                new StatViewModel(),
+            };
+
             AmountOfMatches = 0;
             AmountLoaded = 0;
 
@@ -119,14 +145,20 @@ namespace SkillMe.tf.ViewModel
 
         private void LoadOfflineMatches()
         {
+            ClassCount classCount = new ClassCount();
+            classCount.Show();
+
             DirectoryInfo info = new DirectoryInfo(@_folder + "/matches/" + SteamID);
             foreach (var matchFile in info.GetFiles("*.json"))
             {
                 string json = File.ReadAllText(matchFile.FullName);
                 JObject match = JObject.Parse(json);
+                if (IsCombinedLog(match)) continue;
+
                 _matches.Add(match);
 
                 CurrentClassView.AverageMatch(match);
+                CountClass(match);
 
                 AmountOfMatches += 1;
                 AmountLoaded += 1;
@@ -147,7 +179,7 @@ namespace SkillMe.tf.ViewModel
                 //No loading needed incase everything is offline.
                 if (OldAmountOfMatches == AmountOfMatches) return;
 
-                MessageBoxResult dialogResult = MessageBox.Show("This can take some time. A pause of 3 seconds every 25 logs is required so the request does not time out. This means you'll have to wait about " + (((AmountOfMatches - OldAmountOfMatches) / 25) * 3) / 60 + " minutes.\n\nContinue?", "Warning", MessageBoxButton.YesNo);
+                MessageBoxResult dialogResult = MessageBox.Show("This can take some time. A pause of 4 seconds every 25 logs is required so the request does not time out. This means you'll have to wait about " + (((AmountOfMatches - OldAmountOfMatches) / 25) * 4) / 60 + " minutes.\n\nContinue?", "Warning", MessageBoxButton.YesNo);
                 if (dialogResult == MessageBoxResult.Yes)
                 {
                     CanRetrieve = false;
@@ -156,21 +188,58 @@ namespace SkillMe.tf.ViewModel
                     {
                         int id = (int)json["logs"][i]["id"];
                         JObject match = JObject.Parse(await GetMatchInformation(id));
+                        if (IsCombinedLog(match)) continue;
 
                         AmountLoaded += 1;
 
                         CurrentClassView.AverageMatch(match);
+                        CountClass(match);
 
                         //Requests will crash if no pauses.
                         if (AmountLoaded % 25 == 0)
                         {
-                            System.Threading.Thread.Sleep(3000);
+                            System.Threading.Thread.Sleep(4000);
                         }
 
                         _matches.Add(match);
                         SaveMatch(id, match);
                     }
                 }
+            }
+        }
+
+        private bool IsCombinedLog(JObject match)
+        {
+            string info = match["info"]["uploader"]["info"].ToString();
+            if (info != null && info.Contains("Combiner"))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private void CountClass(JObject match)
+        {
+            //For older logs
+            JToken playerInfo = match["players"][_internalId.NormalId];
+
+            if (playerInfo == null)
+            {
+                //For newer logs
+                playerInfo = match["players"][_internalId.Id3];
+
+                if (playerInfo == null)
+                {
+                    return;
+                }
+            }
+
+            foreach(JToken classPlayed in playerInfo["class_stats"])
+            {
+                Classes thisClass = ClassesHelper.FromString(classPlayed["type"].ToString());
+                ClassOverview[thisClass] += 1;
+                OnPropertyChanged("ClassOverview");
             }
         }
 

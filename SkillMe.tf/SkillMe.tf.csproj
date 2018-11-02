@@ -87,12 +87,20 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Converters\StatConverter.cs" />
+    <Compile Include="ClassCount.xaml.cs">
+      <DependentUpon>ClassCount.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="DataTypes\ObservableDictionary.cs" />
     <Compile Include="Models\Classes.cs" />
     <Compile Include="Models\SteamID.cs" />
     <Compile Include="ViewModel\ClassStatsViewmodel.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />
+    <Compile Include="ViewModel\StatViewModel.cs" />
     <Compile Include="ViewModel\ViewModelLocator.cs" />
+    <Page Include="ClassCount.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -133,6 +141,18 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Resource Include="Images\background.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\stats\demoman.png" />
+    <Resource Include="Images\stats\heavyweapons.png" />
+    <Resource Include="Images\stats\medic.png" />
+    <Resource Include="Images\stats\pyro.png" />
+    <Resource Include="Images\stats\scout.png" />
+    <Resource Include="Images\stats\sniper.png" />
+    <Resource Include="Images\stats\soldier.png" />
+    <Resource Include="Images\stats\spy.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

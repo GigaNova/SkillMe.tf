@@ -33,6 +33,7 @@ namespace SkillMe.tf.Models
                 case "pyro":
                     return Classes.Pyro;
                 case "heavy":
+                case "heavyweapons":
                     return Classes.Heavy;
                 case "demoman":
                     return Classes.Demoman;
