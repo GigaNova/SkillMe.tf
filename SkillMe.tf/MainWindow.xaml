@@ -16,5 +16,21 @@
         <Label Content="{Binding AmountOfMatches}" HorizontalAlignment="Left" Margin="699,6,0,0" VerticalAlignment="Top" Width="69"/>
         <Label Content="Amount of matches loaded:" HorizontalAlignment="Left" Margin="544,32,0,0" VerticalAlignment="Top"/>
         <Label Content="{Binding AmountLoaded}" HorizontalAlignment="Left" Margin="699,32,0,0" VerticalAlignment="Top" Width="69"/>
+
+        <Label Content="Class:" FontSize="24" HorizontalAlignment="Left" Margin="10,87,0,0" VerticalAlignment="Top"/>
+        <Label Content="Average Kills:" FontSize="24" HorizontalAlignment="Left" Margin="10,134,0,0" VerticalAlignment="Top"/>
+        <Label Content="Average Deaths:" FontSize="24" HorizontalAlignment="Left" Margin="10,181,0,0" VerticalAlignment="Top"/>
+        <Label Content="Average KD:" FontSize="24" HorizontalAlignment="Left" Margin="10,228,0,0" VerticalAlignment="Top"/>
+        <Label Content="Average KAD:" FontSize="24" HorizontalAlignment="Left" Margin="10,275,0,0" VerticalAlignment="Top"/>
+        <Label Content="Average Damage:" FontSize="24" HorizontalAlignment="Left" Margin="10,322,0,0" VerticalAlignment="Top"/>
+
+        <Label Content="{Binding CurrentClassView.PlayerClass}" Foreground="#3f3f3f" FontSize="24" HorizontalAlignment="Left" Margin="83,87,0,0" VerticalAlignment="Top"/>
+        <Label Content="{Binding CurrentClassView.AvgK}" Foreground="#3f3f3f" ContentStringFormat="{}{0:#}" FontSize="24" HorizontalAlignment="Left" Margin="224,134,0,0" VerticalAlignment="Top"/>
+        <Label Content="{Binding CurrentClassView.AvgD}" Foreground="#3f3f3f" ContentStringFormat="{}{0:#}" FontSize="24" HorizontalAlignment="Left" Margin="224,181,0,0" VerticalAlignment="Top"/>
+        <Label Content="{Binding CurrentClassView.AvgKd}" Foreground="#3f3f3f" ContentStringFormat="{}{0:#.##}"  FontSize="24" HorizontalAlignment="Left" Margin="224,228,0,0" VerticalAlignment="Top"/>
+        <Label Content="{Binding CurrentClassView.AvgKad}" Foreground="#3f3f3f" ContentStringFormat="{}{0:#.##}" FontSize="24" HorizontalAlignment="Left" Margin="224,275,0,0" VerticalAlignment="Top"/>
+        <Label Content="{Binding CurrentClassView.AvgDa}" ContentStringFormat="{}{0:#}" Foreground="#3f3f3f" FontSize="24" HorizontalAlignment="Left" Margin="224,322,0,0" VerticalAlignment="Top"/>
+        
+        <Label Content="Made by Tsumugu" HorizontalAlignment="Left" Margin="10,553,0,0" VerticalAlignment="Top"/>
     </Grid>
 </Window>

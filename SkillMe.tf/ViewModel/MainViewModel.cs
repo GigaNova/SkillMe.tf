@@ -9,12 +9,12 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.CommandWpf;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Schema;
+using SkillMe.tf.Models;
 
 namespace SkillMe.tf.ViewModel
 {
@@ -22,8 +22,22 @@ namespace SkillMe.tf.ViewModel
     {
         private const string _webUrl = "https://logs.tf/api/v1/";
         private HttpClient _client = new HttpClient();
+
+        private SteamId _internalId;
         private List<JObject> _matches = new List<JObject>();
+
         private string _folder = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+
+        private ClassStatsViewmodel _currentClassView;
+        public ClassStatsViewmodel CurrentClassView
+        {
+            get { return _currentClassView; }
+            set
+            {
+                _currentClassView = value;
+                OnPropertyChanged();
+            }
+        }
 
         private string _steamID;
         public string SteamID
@@ -91,6 +105,10 @@ namespace SkillMe.tf.ViewModel
             {
                 CanRetrieve = true;
                 Directory.CreateDirectory(@_folder + "/matches/" + SteamID);
+
+                _internalId = new SteamId(SteamID);
+                CurrentClassView = new ClassStatsViewmodel(_internalId, Classes.All);
+
                 LoadOfflineMatches();
             }
             else
@@ -108,6 +126,8 @@ namespace SkillMe.tf.ViewModel
                 JObject match = JObject.Parse(json);
                 _matches.Add(match);
 
+                CurrentClassView.AverageMatch(match);
+
                 AmountOfMatches += 1;
                 AmountLoaded += 1;
             }
@@ -119,26 +139,37 @@ namespace SkillMe.tf.ViewModel
 
             if (jsoninformation != null)
             {
-                CanRetrieve = false;
-
                 JObject json = JObject.Parse(jsoninformation);
+
+                int OldAmountOfMatches = AmountOfMatches;
                 AmountOfMatches = (int)json["results"];
 
-                for (int i = AmountLoaded; i < json["logs"].Reverse().Count(); ++i)
+                //No loading needed incase everything is offline.
+                if (OldAmountOfMatches == AmountOfMatches) return;
+
+                MessageBoxResult dialogResult = MessageBox.Show("This can take some time. A pause of 3 seconds every 25 logs is required so the request does not time out. This means you'll have to wait about " + (((AmountOfMatches - OldAmountOfMatches) / 25) * 3) / 60 + " minutes.\n\nContinue?", "Warning", MessageBoxButton.YesNo);
+                if (dialogResult == MessageBoxResult.Yes)
                 {
-                    int id = (int)json["logs"][i]["id"];
-                    JObject match = JObject.Parse(await GetMatchInformation(id));
+                    CanRetrieve = false;
 
-                    AmountLoaded += 1;
-
-                    //Requests will crash if no pauses.
-                    if (AmountLoaded % 25 == 0)
+                    for (int i = AmountLoaded; i < json["logs"].Reverse().Count(); ++i)
                     {
-                        System.Threading.Thread.Sleep(3000);
-                    }
+                        int id = (int)json["logs"][i]["id"];
+                        JObject match = JObject.Parse(await GetMatchInformation(id));
 
-                    _matches.Add(match);
-                    SaveMatch(id, match);
+                        AmountLoaded += 1;
+
+                        CurrentClassView.AverageMatch(match);
+
+                        //Requests will crash if no pauses.
+                        if (AmountLoaded % 25 == 0)
+                        {
+                            System.Threading.Thread.Sleep(3000);
+                        }
+
+                        _matches.Add(match);
+                        SaveMatch(id, match);
+                    }
                 }
             }
         }
