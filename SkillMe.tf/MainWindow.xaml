@@ -5,8 +5,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SkillMe.tf"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="620" Width="780"
+        DataContext="{Binding Main, Source={StaticResource Locator}}">
     <Grid>
-        
+        <TextBox HorizontalAlignment="Left" Height="17" Margin="62,10,0,0" TextWrapping="Wrap" Text="{Binding SteamID, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="213"/>
+        <Label HorizontalAlignment="Left" Margin="5,6,0,0" Content="SteamID:" VerticalAlignment="Top"/>
+        <Button IsEnabled="{Binding CanRetrieve}" Content="Retrieve" Command="{Binding RetrieveInformationCommand}" HorizontalAlignment="Left" Margin="280,5,0,0" VerticalAlignment="Top" Width="75" Height="27"/>
+
+        <Label Content="Amount of matches played:" HorizontalAlignment="Left" Margin="544,6,0,0" VerticalAlignment="Top"/>
+        <Label Content="{Binding AmountOfMatches}" HorizontalAlignment="Left" Margin="699,6,0,0" VerticalAlignment="Top" Width="69"/>
+        <Label Content="Amount of matches loaded:" HorizontalAlignment="Left" Margin="544,32,0,0" VerticalAlignment="Top"/>
+        <Label Content="{Binding AmountLoaded}" HorizontalAlignment="Left" Margin="699,32,0,0" VerticalAlignment="Top" Width="69"/>
     </Grid>
 </Window>

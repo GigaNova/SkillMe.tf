@@ -1,34 +1,190 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using System.Windows.Input;
 using GalaSoft.MvvmLight;
+using GalaSoft.MvvmLight.CommandWpf;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Schema;
 
 namespace SkillMe.tf.ViewModel
 {
-    /// <summary>
-    /// This class contains properties that the main View can data bind to.
-    /// <para>
-    /// Use the <strong>mvvminpc</strong> snippet to add bindable properties to this ViewModel.
-    /// </para>
-    /// <para>
-    /// You can also use Blend to data bind with the tool's support.
-    /// </para>
-    /// <para>
-    /// See http://www.galasoft.ch/mvvm
-    /// </para>
-    /// </summary>
-    public class MainViewModel : ViewModelBase
+    public class MainViewModel : ViewModelBase, INotifyPropertyChanged
     {
-        /// <summary>
-        /// Initializes a new instance of the MainViewModel class.
-        /// </summary>
+        private const string _webUrl = "https://logs.tf/api/v1/";
+        private HttpClient _client = new HttpClient();
+        private List<JObject> _matches = new List<JObject>();
+        private string _folder = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+
+        private string _steamID;
+        public string SteamID
+        {
+            get { return _steamID; }
+            set
+            {
+                _steamID = value;
+                CheckSteamID();
+            }
+        }
+
+        private bool _canRetrieve;
+        public bool CanRetrieve
+        {
+            get { return _canRetrieve; }
+            set
+            {
+                _canRetrieve = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private int _amountOfMatches;
+        public int AmountOfMatches
+        {
+            get { return _amountOfMatches; }
+            set
+            {
+                _amountOfMatches = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private int _amountLoaded;
+        public int AmountLoaded
+        {
+            get { return _amountLoaded; }
+            set
+            {
+                _amountLoaded = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ICommand RetrieveInformationCommand { get; }
+
         public MainViewModel()
         {
-            ////if (IsInDesignMode)
-            ////{
-            ////    // Code runs in Blend --> create design time data.
-            ////}
-            ////else
-            ////{
-            ////    // Code runs "for real"
-            ////}
+            Directory.CreateDirectory(@_folder + "/matches");
+
+            _client.Timeout = TimeSpan.FromMinutes(30);
+            _client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            _client.BaseAddress = new Uri(@_webUrl);
+
+            AmountOfMatches = 0;
+            AmountLoaded = 0;
+
+            RetrieveInformationCommand = new RelayCommand(RetrieveInformation);
+        }
+
+        private void CheckSteamID()
+        {
+            if (SteamID.Length == 17 && SteamID.Contains("7656119"))
+            {
+                CanRetrieve = true;
+                Directory.CreateDirectory(@_folder + "/matches/" + SteamID);
+                LoadOfflineMatches();
+            }
+            else
+            {
+                CanRetrieve = false;
+            }
+        }
+
+        private void LoadOfflineMatches()
+        {
+            DirectoryInfo info = new DirectoryInfo(@_folder + "/matches/" + SteamID);
+            foreach (var matchFile in info.GetFiles("*.json"))
+            {
+                string json = File.ReadAllText(matchFile.FullName);
+                JObject match = JObject.Parse(json);
+                _matches.Add(match);
+
+                AmountOfMatches += 1;
+                AmountLoaded += 1;
+            }
+        }
+
+        private async void RetrieveInformation()
+        {
+            string jsoninformation = await GetMatchesInformation();
+
+            if (jsoninformation != null)
+            {
+                CanRetrieve = false;
+
+                JObject json = JObject.Parse(jsoninformation);
+                AmountOfMatches = (int)json["results"];
+
+                for (int i = AmountLoaded; i < json["logs"].Reverse().Count(); ++i)
+                {
+                    int id = (int)json["logs"][i]["id"];
+                    JObject match = JObject.Parse(await GetMatchInformation(id));
+
+                    AmountLoaded += 1;
+
+                    //Requests will crash if no pauses.
+                    if (AmountLoaded % 25 == 0)
+                    {
+                        System.Threading.Thread.Sleep(3000);
+                    }
+
+                    _matches.Add(match);
+                    SaveMatch(id, match);
+                }
+            }
+        }
+
+        private void SaveMatch(int id, JObject match)
+        {
+            try
+            {
+                File.WriteAllText(@_folder + "/matches/" + SteamID + "/" + id + ".json", match.ToString());
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                //Ignore.
+            }
+        }
+
+        private Task<string> GetMatchesInformation()
+        {
+            try
+            {
+                Task<String> result = _client.GetStringAsync("log?player=" + SteamID + "&limit=10000");
+                return result;
+            }
+            catch (WebException exception)
+            {
+                return null;
+            }
+        }
+
+        private Task<string> GetMatchInformation(int id)
+        {
+            try
+            {
+                Task<String> result = _client.GetStringAsync("log/" + id);
+                return result;
+            }
+            catch (WebException exception)
+            {
+                return null;
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }
